@@ -1,0 +1,315 @@
+#!/bin/bash -e
+
+root_path=$PWD
+package_stack=()
+
+function archie_fetch () {
+  tarball=$root_path/packages/$package/*.tar.gz
+  if [[ ! -z "$tarball" ]]
+  then
+    echo "$tarball found"
+    echo "extracting" packages/$package/*.tar.gz "into tmp"
+    mkdir -p .archie/tarball
+    cd .archie/tarball
+    if tar -x -z -f $tarball
+    then
+      mkdir -p $root_path/src
+      echo "moving" $PWD/*/ "to" $root_path/src/$package/
+      rm -rf $root_path/src/$package
+      mv */ $root_path/src/$package
+      cd $root_path
+      echo "tarball fetch done, marking $package fetch as not stale"
+      rm -f .archie/$package/fetch_is_stale
+    else
+      echo "tar failed"
+      exit -1
+    fi
+  else
+    echo "no tarballs found in packages/$package"
+    exit -1
+  fi
+}
+
+function archie_configure () {
+  if [[ -e packages/$package/cmake_configure ]]
+  then
+    cmake_cmd="cmake "
+    cmake_cmd+="$root_path/src/$package "
+    cmake_cmd+="-DCMAKE_INSTALL_PREFIX=$root_path/install/$package "
+    if [[ -e $root_path/packages/$package/depends_on ]]
+    then
+      depends_on=()
+      source $root_path/packages/$package/depends_on
+      cmake_prefix_path=""
+      for upstream in "${depends_on[@]}"
+      do
+        upstream_path="$root_path/install/$upstream"
+        cmake_prefix_path+=";$upstream_path"
+        export ${upstream}_install=$upstream_path
+      done
+      cmake_cmd+="-DCMAKE_PREFIX_PATH=\"$cmake_prefix_path\" "
+    fi
+    echo "packages/$package/cmake_configure exists"
+    mkdir -p build/$package
+    cd build/$package
+    echo "sourcing packages/$package/cmake_configure"
+    cmake_args=()
+    source $root_path/packages/$package/cmake_configure
+    cmake_cmd+="${cmake_args[@]} "
+    echo "running: $cmake_cmd"
+    if eval $cmake_cmd
+    then
+      cd $root_path
+      echo "CMake succeeded, marking $package config as not stale"
+      rm -f .archie/$package/config_is_stale
+    else
+      echo "CMake failed $package"
+      exit -1
+    fi
+  else
+    echo "packages/$package/cmake_configure doesn't exist"
+    exit -1
+  fi
+}
+
+function archie_install () {
+  cd build/$package
+  echo "running make install in build/$package"
+  if make install -j 4
+  then
+    cd $root_path
+    echo "make install succeeded, marking $package install as not stale"
+    rm -f .archie/$package/install_is_stale
+  else
+    echo "make install of $package failed"
+    exit -1
+  fi
+}
+
+function archie_update_package () {
+  if [[ -e .archie/$package/fetch_is_stale ]]
+  then
+    archie_fetch
+  fi
+  if [[ -e .archie/$package/config_is_stale ]]
+  then
+    archie_configure
+  fi
+  if [[ -e .archie/$package/install_is_stale ]]
+  then
+    archie_install
+  fi
+}
+
+function archie_push () {
+  echo "pushing $package onto the stack"
+  package_stack+=("$package")
+  echo "stack is now ${package_stack[@]}"
+}
+
+function archie_pop () {
+  package=${package_stack[${#package_stack[@]}-1]}
+  unset package_stack[${#package_stack[@]}-1]
+  echo "popped $package off the stack"
+  echo "stack is now ${package_stack[@]}"
+}
+
+function archie_local_staleness () {
+  archie_fetch_staleness
+  archie_config_staleness
+  archie_local_install_staleness
+}
+
+function archie_fetch_staleness () {
+  echo "determining whether $package fetch is stale"
+  if [[ -e .archie/$package/fetch_is_stale ]]
+  then
+    echo "$package fetch was already stale"
+    return
+  fi
+  if [[ ! -d src/$package ]]
+  then
+    echo "$package fetch is stale because src/$package doesn't exist"
+    touch .archie/$package/fetch_is_stale
+  fi
+}
+
+function archie_config_staleness () {
+  echo "determining whether $package config is stale"
+  if [[ -e .archie/$package/config_is_stale ]]
+  then
+    echo "$package config was already stale"
+    return
+  fi
+  if [[ ! -d src/$package ]]
+  then
+    echo "$package config is stale because src/$package doesn't exist"
+    touch .archie/$package/config_is_stale
+  fi
+  if [[ ! -d build/$package ]]
+  then
+    echo "$package config is stale because build/$package doesn't exist"
+    touch .archie/$package/config_is_stale
+  fi
+}
+
+function archie_local_install_staleness () {
+  echo "determining whether $package install is stale"
+  if [[ -e .archie/$package/install_is_stale ]]
+  then
+    echo "$package install was already stale"
+    return
+  fi
+  if [[ -e .archie/$package/fetch_is_stale ]]
+  then
+    echo "$package install is stale because $package fetch is stale"
+    touch .archie/$package/install_is_stale
+  fi
+  if [[ -e .archie/$package/config_is_stale ]]
+  then
+    echo "$package install is stale because $package config is stale"
+    touch .archie/$package/install_is_stale
+  fi
+}
+
+function archie_depended_on_by () {
+  echo "determining depended_on_by"
+  for package_path in packages/*/
+  do
+    package=`basename $package_path`
+    rm -f .archie/$package/depended_on_by
+  done
+  for package_path in packages/*/
+  do
+    if [[ -e $package_path/depends_on ]]
+    then
+      package=`basename $package_path`
+      depends_on=()
+      source $package_path/depends_on
+      for upstream in ${depends_on[@]}
+      do
+        echo "$upstream depended on by $package"
+        echo $package >> .archie/$upstream/depended_on_by
+      done
+    fi
+  done
+}
+
+function archie_global_staleness_dfs () {
+  touch .archie/$package/visited
+  if [[ -e .archie/$package/depended_on_by ]]
+  then
+    for downstream in `cat .archie/$package/depended_on_by`
+    do
+      if [[ ! -e .archie/$downstream/visited ]]
+      then
+        if [[ -e .archie/$package/install_is_stale ]] && [[ ! -e .archie/$downstream/install_is_stale ]]
+        then
+          echo "marked $downstream install as stale because $package install was stale"
+          touch .archie/$downstream/install_is_stale
+        fi
+        archie_push
+        package=$downstream
+        archie_global_staleness_dfs
+        archie_pop
+      fi
+    done
+  fi
+}
+
+function archie_global_staleness () {
+  for package_path in packages/*/
+  do
+    package=`basename $package_path`
+    mkdir -p .archie/$package
+    archie_local_staleness
+    rm -f .archie/$package/visited
+  done
+  for package_path in packages/*/
+  do
+    package=`basename $package_path`
+    if [[ ! -e .archie/$package/visited ]]
+    then
+      depends_on=()
+      if [[ -e $package_path/depends_on ]]
+      then
+        source $package_path/depends_on
+      fi
+      if [ ${#depends_on[@]} -eq 0 ]
+      then
+        package=`basename $package_path`
+        echo "$package hasn't been visited for global staleness and has no dependencies"
+        archie_global_staleness_dfs
+      fi
+    fi
+  done
+}
+
+function archie_update_dfs () {
+  archie_update_package
+  touch .archie/$package/visited
+  if [[ -e .archie/$package/depended_on_by ]]
+  then
+    for downstream in `cat .archie/$package/depended_on_by`
+    do
+      if [[ ! -e .archie/$downstream/visited ]]
+      then
+        archie_push
+        package=$downstream
+        archie_update_dfs
+        archie_pop
+      fi
+    done
+  fi
+}
+
+function archie_global_update () {
+  for package_path in packages/*/
+  do
+    package=`basename $package_path`
+    rm -f .archie/$package/visited
+  done
+  for package_path in packages/*/
+  do
+    package=`basename $package_path`
+    if [[ ! -e .archie/$package/visited ]]
+    then
+      depends_on=()
+      if [[ -e $package_path/depends_on ]]
+      then
+        source $package_path/depends_on
+      fi
+      if [ ${#depends_on[@]} -eq 0 ]
+      then
+        package=`basename $package_path`
+        echo "$package hasn't been visited for global update and has no dependencies"
+        archie_update_dfs
+      fi
+    fi
+  done
+}
+
+function archie_update () {
+  archie_depended_on_by
+  archie_global_staleness
+  archie_global_update
+}
+
+if [ -z "$1" ]
+then
+  echo "no command given"
+  echo "available commands are:"
+  echo "  update            ensure all packages are built up-to-date with external changes"
+  exit
+fi
+
+case $1 in
+  update)
+    echo "recognize update command"
+    archie_update
+    ;;
+  *)
+    echo "don't recognize command $1!"
+    exit
+    ;;
+esac
