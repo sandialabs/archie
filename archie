@@ -6,7 +6,7 @@ package_stack=()
 function archie_fetch () {
   if [[ -e packages/$package/git_url ]]
   then
-    echo "package/$package/git_url exists"
+    echo "packages/$package/git_url exists"
     if [[ -d src/$package ]]
     then
       echo "currently no model for stale git_url where src/$package exists!"
@@ -25,7 +25,7 @@ function archie_fetch () {
       fi
     fi
   else
-    echo "package/$package/git_url doesn't exist"
+    echo "packages/$package/git_url doesn't exist"
     if ls $root_path/packages/$package/*.tar.gz
     then
       tarball=$root_path/packages/$package/*.tar.gz
@@ -57,7 +57,13 @@ function archie_configure () {
   if [[ -e packages/$package/cmake_configure ]]
   then
     cmake_cmd="cmake "
-    cmake_cmd+="$root_path/src/$package "
+    if [[ -e $root_path/packages/$package/src_subdir ]]
+    then
+      subdir=`cat $root_path/packages/$package/src_subdir`
+      cmake_cmd+="$root_path/src/$package/$subdir "
+    else
+      cmake_cmd+="$root_path/src/$package "
+    fi
     cmake_cmd+="-DCMAKE_INSTALL_PREFIX=$root_path/install/$package "
     if [[ -e $root_path/packages/$package/depends_on ]]
     then
@@ -79,14 +85,15 @@ function archie_configure () {
     cmake_args=()
     source $root_path/packages/$package/cmake_configure
     cmake_cmd+="${cmake_args[@]} "
+    rm -rf CMakeCache.txt CMakeFiles/
     echo "running: $cmake_cmd"
     if eval $cmake_cmd
     then
       cd $root_path
-      echo "CMake succeeded, marking $package config as not stale"
+      echo "CMake succeeded for $package, marking config as not stale"
       rm -f .archie/$package/config_is_stale
     else
-      echo "CMake failed $package"
+      echo "CMake failed for $package"
       exit -1
     fi
   else
@@ -149,6 +156,7 @@ function archie_fetch_staleness () {
   then
     echo "$package fetch is stale because src/$package doesn't exist"
     touch .archie/$package/fetch_is_stale
+    return
   fi
 }
 
@@ -162,11 +170,13 @@ function archie_config_staleness () {
   then
     echo "$package config is stale because src/$package doesn't exist"
     touch .archie/$package/config_is_stale
+    return
   fi
   if [[ ! -d build/$package ]]
   then
     echo "$package config is stale because build/$package doesn't exist"
     touch .archie/$package/config_is_stale
+    return
   fi
 }
 
@@ -180,11 +190,13 @@ function archie_local_install_staleness () {
   then
     echo "$package install is stale because $package fetch is stale"
     touch .archie/$package/install_is_stale
+    return
   fi
   if [[ -e .archie/$package/config_is_stale ]]
   then
     echo "$package install is stale because $package config is stale"
     touch .archie/$package/install_is_stale
+    return
   fi
 }
 
@@ -193,6 +205,7 @@ function archie_depended_on_by () {
   for package_path in packages/*/
   do
     package=`basename $package_path`
+    mkdir -p .archie/$package
     rm -f .archie/$package/depended_on_by
   done
   for package_path in packages/*/
@@ -204,7 +217,6 @@ function archie_depended_on_by () {
       source $package_path/depends_on
       for upstream in ${depends_on[@]}
       do
-        echo "$upstream depended on by $package"
         echo $package >> .archie/$upstream/depended_on_by
       done
     fi
@@ -337,11 +349,11 @@ fi
 
 case $1 in
   update)
-    echo "recognize update command"
+    echo "executing update command"
     archie_update
     ;;
   changed)
-    echo "recognize changed command"
+    echo "executing changed $2 command"
     archie_changed $2
     ;;
   *)
