@@ -309,11 +309,28 @@ function archie_update () {
   archie_global_update
 }
 
+function archie_changed () {
+  if [ -z $1 ]
+  then
+    echo "no argument to archie changed, syntax is:"
+    echo "  archie changed <package-name>"
+    exit -1
+  fi
+  if [[ ! -d packages/$1 ]]
+  then
+    echo "packages/$1 doesn't exist, so $1 isn't a package"
+    exit -1
+  fi
+  touch .archie/$1/install_is_stale
+  archie_update
+}
+
 if [ -z "$1" ]
 then
   echo "no command given"
   echo "available commands are:"
   echo "  update            ensure all packages are built up-to-date with external changes"
+  echo "  changed <package> do an update assuming the source code for <package> was edited"
   exit
 fi
 
@@ -321,6 +338,10 @@ case $1 in
   update)
     echo "recognize update command"
     archie_update
+    ;;
+  changed)
+    echo "recognize changed command"
+    archie_changed $2
     ;;
   *)
     echo "don't recognize command $1!"
