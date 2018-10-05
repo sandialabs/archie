@@ -1,24 +1,24 @@
 #!/bin/bash -e
 
-root_path=$PWD
+root_path="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 package_stack=()
 
-function archie_fetch () {
+function archie_clone () {
   if [[ -e packages/$package/git_url ]]
   then
     echo "packages/$package/git_url exists"
     if [[ -d src/$package ]]
     then
-      echo "currently no model for stale git_url where src/$package exists!"
-      echo "try just removing src/$package"
+      echo "trying to clone into src/$package but it exists!"
+      echo "if you really want to re-clone please rm -rf src/$package"
       exit -1
     else
       git_url=`cat packages/$package/git_url`
       echo "running git clone $git_url src/$package"
       if git clone $git_url src/$package
       then
-        echo "git clone $git_url succeeded, marking $package fetch as not stale"
-        rm -f .archie/$package/fetch_is_stale
+        echo "git clone $git_url succeeded, marking $package clone as not stale"
+        rm -f .archie/$package/clone_is_stale
       else
         echo "git clone $git_url failed"
         exit -1
@@ -40,8 +40,8 @@ function archie_fetch () {
         rm -rf $root_path/src/$package
         mv */ $root_path/src/$package
         cd $root_path
-        echo "tarball fetch done, marking $package fetch as not stale"
-        rm -f .archie/$package/fetch_is_stale
+        echo "tarball clone done, marking $package clone as not stale"
+        rm -f .archie/$package/clone_is_stale
       else
         echo "tar failed"
         exit -1
@@ -117,9 +117,9 @@ function archie_install () {
 }
 
 function archie_update_package () {
-  if [[ -e .archie/$package/fetch_is_stale ]]
+  if [[ -e .archie/$package/clone_is_stale ]]
   then
-    archie_fetch
+    archie_clone
   fi
   if [[ -e .archie/$package/config_is_stale ]]
   then
@@ -141,21 +141,21 @@ function archie_pop () {
 }
 
 function archie_local_staleness () {
-  archie_fetch_staleness
+  archie_clone_staleness
   archie_config_staleness
   archie_local_install_staleness
 }
 
-function archie_fetch_staleness () {
-  if [[ -e .archie/$package/fetch_is_stale ]]
+function archie_clone_staleness () {
+  if [[ -e .archie/$package/clone_is_stale ]]
   then
-    echo "$package fetch was already stale"
+    echo "$package clone was already stale"
     return
   fi
   if [[ ! -d src/$package ]]
   then
-    echo "$package fetch is stale because src/$package doesn't exist"
-    touch .archie/$package/fetch_is_stale
+    echo "$package clone is stale because src/$package doesn't exist"
+    touch .archie/$package/clone_is_stale
     return
   fi
 }
@@ -186,9 +186,9 @@ function archie_local_install_staleness () {
     echo "$package install was already stale"
     return
   fi
-  if [[ -e .archie/$package/fetch_is_stale ]]
+  if [[ -e .archie/$package/clone_is_stale ]]
   then
-    echo "$package install is stale because $package fetch is stale"
+    echo "$package install is stale because $package clone is stale"
     touch .archie/$package/install_is_stale
     return
   fi
@@ -344,6 +344,14 @@ function archie_changed_config () {
   touch .archie/$package/config_is_stale
 }
 
+function archie_changed_clone () {
+  dir=`dirname $1`
+  package=`basename $dir`
+  assert_package
+  echo "marking $package's clone as stale per user request"
+  touch .archie/$package/clone_is_stale
+}
+
 function archie_changed () {
   if [ -z $1 ]
   then
@@ -360,8 +368,60 @@ function archie_changed () {
     packages/*/cmake_configure)
       archie_changed_config $1
       ;;
+    packages/*/*.tar.gz)
+      archie_changed_clone $1
+      ;;
+    packages/*/git_url)
+      archie_changed_clone $1
+      ;;
     *)
       echo "$1 is not a recognized path in the archie tree"
+      exit -1
+      ;;
+  esac
+  archie_update
+}
+
+function archie_pull_src () {
+  package=`basename $1`
+  assert_package
+  cd src/$package
+  git pull &> $root_path/.archie/pull_output
+  if [[ $? == 0 ]]
+  then
+    echo "git pull in src/$package succeeded"
+    if cat $root_path/.archie/pull_output | grep -q 'Already up-to-date.'
+    then
+      echo "src/$package was already up-to-date"
+    else
+      echo "src/$package modified by git pull"
+      echo "marking $package's install as stale per user request"
+      touch .archie/$package/install_is_stale
+    fi
+    cd $root_path
+  else
+    echo "git pull in src/$package failed"
+    echo "output was:"
+    cat $root_path/.archie/pull_output
+    exit -1
+  fi
+}
+
+function archie_pull () {
+  if [ -z $1 ]
+  then
+    echo "no argument to archie pull, syntax is:"
+    echo "  archie pull <path>"
+    echo "examples:"
+    echo "  archie pull src/mypackage"
+    exit -1
+  fi
+  case "$1" in
+    src/*)
+      archie_pull_src $1
+      ;;
+    *)
+      echo "$1 is not a recognized pull argument"
       exit -1
       ;;
   esac
@@ -372,8 +432,16 @@ if [ -z "$1" ]
 then
   echo "no command given"
   echo "available commands are:"
-  echo "  update            ensure all packages are built up-to-date with external changes"
-  echo "  changed <package> do an update assuming the source code for <package> was edited"
+  echo "  update"
+  echo "ensure all packages are built up-to-date with external changes"
+  echo "  changed src/<pkg>"
+  echo "update assuming <pkg> source changed"
+  echo "  changed packages/<pkg>/cmake_configure"
+  echo "update assuming <pkg> CMake options logic changed"
+  echo "  changed packages/<pkg>/git_url"
+  echo "update assuming <pkg> origin URL changed"
+  echo "  changed packages/<pkg>/*.tar.gz"
+  echo "update assuming <pkg> tarball contents changed"
   exit
 fi
 
@@ -385,6 +453,10 @@ case $1 in
   changed)
     echo "executing changed $2 command"
     archie_changed $2
+    ;;
+  pull)
+    echo "executing pull $2 command"
+    archie_pull $2
     ;;
   *)
     echo "don't recognize command $1!"
