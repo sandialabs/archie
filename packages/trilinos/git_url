@@ -1,1 +1,1 @@
-git@github.com:Trilinos/trilinos.git
+-b develop git@github.com:Trilinos/trilinos.git

@@ -321,6 +321,7 @@ function archie_changed () {
     echo "packages/$1 doesn't exist, so $1 isn't a package"
     exit -1
   fi
+  echo "marking $1's install as stale per user request"
   touch .archie/$1/install_is_stale
   archie_update
 }
