@@ -125,16 +125,12 @@ function archie_update_package () {
 }
 
 function archie_push () {
-  echo "pushing $package onto the stack"
   package_stack+=("$package")
-  echo "stack is now ${package_stack[@]}"
 }
 
 function archie_pop () {
   package=${package_stack[${#package_stack[@]}-1]}
   unset package_stack[${#package_stack[@]}-1]
-  echo "popped $package off the stack"
-  echo "stack is now ${package_stack[@]}"
 }
 
 function archie_local_staleness () {
@@ -144,7 +140,6 @@ function archie_local_staleness () {
 }
 
 function archie_fetch_staleness () {
-  echo "determining whether $package fetch is stale"
   if [[ -e .archie/$package/fetch_is_stale ]]
   then
     echo "$package fetch was already stale"
@@ -158,7 +153,6 @@ function archie_fetch_staleness () {
 }
 
 function archie_config_staleness () {
-  echo "determining whether $package config is stale"
   if [[ -e .archie/$package/config_is_stale ]]
   then
     echo "$package config was already stale"
@@ -177,7 +171,6 @@ function archie_config_staleness () {
 }
 
 function archie_local_install_staleness () {
-  echo "determining whether $package install is stale"
   if [[ -e .archie/$package/install_is_stale ]]
   then
     echo "$package install was already stale"
@@ -261,7 +254,6 @@ function archie_global_staleness () {
       if [ ${#depends_on[@]} -eq 0 ]
       then
         package=`basename $package_path`
-        echo "$package hasn't been visited for global staleness and has no dependencies"
         archie_global_staleness_dfs
       fi
     fi
@@ -305,7 +297,6 @@ function archie_global_update () {
       if [ ${#depends_on[@]} -eq 0 ]
       then
         package=`basename $package_path`
-        echo "$package hasn't been visited for global update and has no dependencies"
         archie_update_dfs
       fi
     fi
