@@ -4,29 +4,52 @@ root_path=$PWD
 package_stack=()
 
 function archie_fetch () {
-  tarball=$root_path/packages/$package/*.tar.gz
-  if [[ ! -z "$tarball" ]]
+  if [[ -e packages/$package/git_url ]]
   then
-    echo "$tarball found"
-    echo "extracting" packages/$package/*.tar.gz "into tmp"
-    mkdir -p .archie/tarball
-    cd .archie/tarball
-    if tar -x -z -f $tarball
+    echo "package/$package/git_url exists"
+    if [[ -d src/$package ]]
     then
-      mkdir -p $root_path/src
-      echo "moving" $PWD/*/ "to" $root_path/src/$package/
-      rm -rf $root_path/src/$package
-      mv */ $root_path/src/$package
-      cd $root_path
-      echo "tarball fetch done, marking $package fetch as not stale"
-      rm -f .archie/$package/fetch_is_stale
-    else
-      echo "tar failed"
+      echo "currently no model for stale git_url where src/$package exists!"
+      echo "try just removing src/$package"
       exit -1
+    else
+      git_url=`cat packages/$package/git_url`
+      echo "running git clone $git_url src/$package"
+      if git clone $git_url src/$package
+      then
+        echo "git clone $git_url succeeded, marking $package fetch as not stale"
+        rm -f .archie/$package/fetch_is_stale
+      else
+        echo "git clone $git_url failed"
+        exit -1
+      fi
     fi
   else
-    echo "no tarballs found in packages/$package"
-    exit -1
+    echo "package/$package/git_url doesn't exist"
+    if ls $root_path/packages/$package/*.tar.gz
+    then
+      tarball=$root_path/packages/$package/*.tar.gz
+      echo "$tarball found"
+      echo "extracting" $tarball "into tmp"
+      mkdir -p .archie/tarball
+      cd .archie/tarball
+      if tar -x -z -f $tarball
+      then
+        mkdir -p $root_path/src
+        echo "moving" $PWD/*/ "to" $root_path/src/$package/
+        rm -rf $root_path/src/$package
+        mv */ $root_path/src/$package
+        cd $root_path
+        echo "tarball fetch done, marking $package fetch as not stale"
+        rm -f .archie/$package/fetch_is_stale
+      else
+        echo "tar failed"
+        exit -1
+      fi
+    else
+      echo "no tarballs or git_url found in packages/$package"
+      exit -1
+    fi
   fi
 }
 
