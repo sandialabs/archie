@@ -321,20 +321,50 @@ function archie_update () {
   archie_global_update
 }
 
+function assert_package () {
+  if [[ ! -d packages/$package ]]
+  then
+    echo "packages/$package doesn't exist so $package isn't a package"
+    exit -1
+  fi
+}
+
+function archie_changed_src () {
+  package=`basename $1`
+  assert_package
+  echo "marking $package's install as stale per user request"
+  touch .archie/$package/install_is_stale
+}
+
+function archie_changed_config () {
+  dir=`dirname $1`
+  package=`basename $dir`
+  assert_package
+  echo "marking $package's config as stale per user request"
+  touch .archie/$package/config_is_stale
+}
+
 function archie_changed () {
   if [ -z $1 ]
   then
     echo "no argument to archie changed, syntax is:"
-    echo "  archie changed <package-name>"
+    echo "  archie changed <path>"
+    echo "examples:"
+    echo "  archie changed src/mypackage"
     exit -1
   fi
-  if [[ ! -d packages/$1 ]]
-  then
-    echo "packages/$1 doesn't exist, so $1 isn't a package"
-    exit -1
-  fi
-  echo "marking $1's install as stale per user request"
-  touch .archie/$1/install_is_stale
+  case "$1" in
+    src/*)
+      archie_changed_src $1
+      ;;
+    packages/*/cmake_configure)
+      archie_changed_config $1
+      ;;
+    *)
+      echo "$1 is not a recognized path in the archie tree"
+      exit -1
+      ;;
+  esac
   archie_update
 }
 
