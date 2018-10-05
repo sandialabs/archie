@@ -1,6 +1,8 @@
 #!/bin/bash -e
 
 root_path="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
+cd $root_path
+
 package_stack=()
 
 function archie_clone () {
@@ -374,12 +376,14 @@ function archie_changed () {
     packages/*/git_url)
       archie_changed_clone $1
       ;;
+    archie)
+      # do nothing if this script itself changed
+      ;;
     *)
       echo "$1 is not a recognized path in the archie tree"
       exit -1
       ;;
   esac
-  archie_update
 }
 
 function archie_pull_src () {
@@ -407,6 +411,27 @@ function archie_pull_src () {
   fi
 }
 
+function archie_pull_self () {
+  if git fetch
+  then
+    echo "git fetch succeeded"
+  else
+    echo "git fetch failed"
+    exit -1
+  fi
+  git diff --name-status HEAD..FETCH_HEAD | grep -v "^D" | cut -f 2 > .archie/pull_diff
+  if git merge FETCH_HEAD
+  then
+    echo "git merge FETCH_HEAD succeeded"
+    for path in `cat .archie/pull_diff`
+    do
+      archie_changed $path
+    done
+  else
+    echo "git merge FETCH_HEAD failed"
+  fi
+}
+
 function archie_pull () {
   if [ -z $1 ]
   then
@@ -420,12 +445,14 @@ function archie_pull () {
     src/*)
       archie_pull_src $1
       ;;
+    self)
+      archie_pull_self
+      ;;
     *)
       echo "$1 is not a recognized pull argument"
       exit -1
       ;;
   esac
-  archie_update
 }
 
 if [ -z "$1" ]
@@ -453,13 +480,15 @@ case $1 in
   changed)
     echo "executing changed $2 command"
     archie_changed $2
+    archie_update
     ;;
   pull)
     echo "executing pull $2 command"
     archie_pull $2
+    archie_update
     ;;
   *)
     echo "don't recognize command $1!"
-    exit
+    exit -1
     ;;
 esac
