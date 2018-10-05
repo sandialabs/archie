@@ -5,6 +5,8 @@ cd $root_path
 
 package_stack=()
 
+make_threads=4
+
 function archie_clone () {
   if [[ -e packages/$package/git_url ]]
   then
@@ -58,7 +60,7 @@ function archie_clone () {
 function archie_configure () {
   if [[ -e packages/$package/cmake_configure ]]
   then
-    cmake_cmd="cmake "
+    cmake_cmd="$root_path/install/cmake/bin/cmake "
     if [[ -e $root_path/packages/$package/src_subdir ]]
     then
       subdir=`cat $root_path/packages/$package/src_subdir`
@@ -100,14 +102,31 @@ function archie_configure () {
     fi
   else
     echo "packages/$package/cmake_configure doesn't exist"
-    exit -1
+    if [[ "$package" == "cmake" ]]
+    then
+      echo "package is cmake"
+      mkdir -p build/$package
+      cd build/$package
+      if $root_path/src/cmake/bootstrap --parallel=$make_threads --prefix=$root_path/install/cmake
+      then
+        echo "CMake bootstrap succeeded, marking config as not stale"
+        cd $root_path
+        rm -f .archie/cmake/config_is_stale
+      else
+        echo "CMake bootstrap failed"
+        exit -1
+      fi
+    else
+      echo "package is $package, not cmake"
+      exit -1
+    fi
   fi
 }
 
 function archie_install () {
   cd build/$package
   echo "running make install in build/$package"
-  if make install -j 4
+  if make install -j $make_threads
   then
     cd $root_path
     echo "make install succeeded, marking $package install as not stale"
@@ -212,20 +231,25 @@ function archie_depended_on_by () {
   done
   for package_path in packages/*/
   do
+    package=`basename $package_path`
+    depends_on=()
+    if [[ "$package" != "cmake" ]]
+    then
+      depends_on+=("cmake")
+    fi
     if [[ -e $package_path/depends_on ]]
     then
-      package=`basename $package_path`
-      depends_on=()
       source $package_path/depends_on
-      for upstream in ${depends_on[@]}
-      do
-        echo $package >> .archie/$upstream/depended_on_by
-      done
     fi
+    for upstream in ${depends_on[@]}
+    do
+      echo $package >> .archie/$upstream/depended_on_by
+    done
   done
 }
 
 function archie_global_staleness_dfs () {
+  mkdir -p .archie/$package
   touch .archie/$package/visited
   if [[ -e .archie/$package/depended_on_by ]]
   then
