@@ -221,14 +221,8 @@ function archie_local_install_staleness () {
   fi
 }
 
-function archie_depended_on_by () {
-  echo "determining depended_on_by"
-  for package_path in packages/*/
-  do
-    package=`basename $package_path`
-    mkdir -p .archie/$package
-    rm -f .archie/$package/depended_on_by
-  done
+function archie_depends_on () {
+  echo "converting depends_on scripts to depends_on lists"
   for package_path in packages/*/
   do
     package=`basename $package_path`
@@ -241,108 +235,95 @@ function archie_depended_on_by () {
     then
       source $package_path/depends_on
     fi
-    for upstream in ${depends_on[@]}
+    echo "${depends_on[@]}" > .archie/$package/depends_on
+  done
+}
+
+function archie_depended_on_by () {
+  echo "determining depended_on_by"
+  for package_path in packages/*/
+  do
+    package=`basename $package_path`
+    mkdir -p .archie/$package
+    rm -f .archie/$package/depended_on_by
+  done
+  for package_path in packages/*/
+  do
+    package=`basename $package_path`
+    for upstream in `cat .archie/$package/depends_on`
     do
       echo $package >> .archie/$upstream/depended_on_by
     done
   done
 }
 
-function archie_global_staleness_dfs () {
-  mkdir -p .archie/$package
-  touch .archie/$package/visited
+function archie_global_staleness () {
+  for package in "${topsorted_packages[@]}"
+  do
+    for upstream in `cat .archie/$package/depends_on`
+    do
+      if [[ -e .archie/$upstream/install_is_stale ]]
+      then
+        touch .archie/$package/install_is_stale
+      fi
+    done
+  done
+}
+
+function archie_topsort_visit () {
+  if [[ -e .archie/$package/permanent_mark ]]
+  then
+    return
+  fi
+  if [[ -e .archie/$package/temporary_mark ]]
+  then
+    echo "package dependency graph has a cycle!"
+    exit -1
+  fi
+  touch .archie/$package/temporary_mark
   if [[ -e .archie/$package/depended_on_by ]]
   then
     for downstream in `cat .archie/$package/depended_on_by`
     do
-      if [[ ! -e .archie/$downstream/visited ]]
-      then
-        if [[ -e .archie/$package/install_is_stale ]] && [[ ! -e .archie/$downstream/install_is_stale ]]
-        then
-          echo "marked $downstream install as stale because $package install was stale"
-          touch .archie/$downstream/install_is_stale
-        fi
-        archie_push
-        package=$downstream
-        archie_global_staleness_dfs
-        archie_pop
-      fi
+      archie_push
+      package=$downstream
+      archie_topsort_visit
+      archie_pop
     done
   fi
+  touch .archie/$package/permanent_mark
+  topsorted_packages=("$package" "${topsorted_packages[@]}")
 }
 
-function archie_global_staleness () {
+function archie_topsort () {
   for package_path in packages/*/
   do
     package=`basename $package_path`
-    mkdir -p .archie/$package
-    archie_local_staleness
-    rm -f .archie/$package/visited
+    rm -f .archie/$package/temporary_mark
+    rm -f .archie/$package/permanent_mark
   done
+  topsorted_packages=()
   for package_path in packages/*/
   do
     package=`basename $package_path`
-    if [[ ! -e .archie/$package/visited ]]
+    if [[ ! -e .archie/$package/temporary_mark ]] && [[ ! -e .archie/$package/permanent_mark ]]
     then
-      depends_on=()
-      if [[ -e $package_path/depends_on ]]
-      then
-        source $package_path/depends_on
-      fi
-      if [ ${#depends_on[@]} -eq 0 ]
-      then
-        package=`basename $package_path`
-        archie_global_staleness_dfs
-      fi
+      archie_topsort_visit
     fi
   done
-}
-
-function archie_update_dfs () {
-  archie_update_package
-  touch .archie/$package/visited
-  if [[ -e .archie/$package/depended_on_by ]]
-  then
-    for downstream in `cat .archie/$package/depended_on_by`
-    do
-      if [[ ! -e .archie/$downstream/visited ]]
-      then
-        archie_push
-        package=$downstream
-        archie_update_dfs
-        archie_pop
-      fi
-    done
-  fi
 }
 
 function archie_global_update () {
-  for package_path in packages/*/
+  for package in "${topsorted_packages[@]}"
   do
-    package=`basename $package_path`
-    rm -f .archie/$package/visited
-  done
-  for package_path in packages/*/
-  do
-    package=`basename $package_path`
-    if [[ ! -e .archie/$package/visited ]]
-    then
-      depends_on=()
-      if [[ -e $package_path/depends_on ]]
-      then
-        source $package_path/depends_on
-      fi
-      if [ ${#depends_on[@]} -eq 0 ]
-      then
-        package=`basename $package_path`
-        archie_update_dfs
-      fi
-    fi
+    archie_update_package
   done
 }
 
 function archie_update () {
+  archie_depends_on
   archie_depended_on_by
+  archie_topsort
   archie_global_staleness
   archie_global_update
 }
@@ -359,6 +340,7 @@ function archie_changed_src () {
   package=`basename $1`
   assert_package
   echo "marking $package's install as stale per user request"
+  mkdir -p .archie/$package
   touch .archie/$package/install_is_stale
 }
 
@@ -414,8 +396,9 @@ function archie_pull_src () {
   package=`basename $1`
   assert_package
   cd src/$package
-  git pull &> $root_path/.archie/pull_output
-  if [[ $? == 0 ]]
+  pull_cmd="git pull 2>&1 | tee $root_path/.archie/pull_output"
+  echo "running $pull_cmd"
+  if eval $pull_cmd
   then
     echo "git pull in src/$package succeeded"
     if cat $root_path/.archie/pull_output | grep -q 'Already up-to-date.'
