@@ -136,11 +136,12 @@ function archie_configure () {
 
 function archie_install () {
   cd build/$package
-  echo "running make install in build/$package"
-  if make install -j $make_threads
+  make_cmd="make install -j $make_threads"
+  echo "running $make_cmd"
+  if eval $make_cmd
   then
     cd $root_path
-    echo "make install succeeded, marking $package install as not stale"
+    echo "make install of $package succeeded, marking install as not stale"
     rm -f .archie/$package/install_is_stale
   else
     echo "make install of $package failed"
