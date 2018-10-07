@@ -246,6 +246,7 @@ function archie_depends_on () {
     then
       source $package_path/depends_on
     fi
+    mkdir -p .archie/$package
     echo "${depends_on[@]}" > .archie/$package/depends_on
   done
 }
