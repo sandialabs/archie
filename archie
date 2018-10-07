@@ -10,6 +10,8 @@ then
   echo "  cp configs/mac archie_machine"
   echo "or create your own"
   exit -1
+else
+  source archie_machine
 fi
 
 package_stack=()
@@ -114,7 +116,9 @@ function archie_configure () {
       echo "package is cmake"
       mkdir -p build/$package
       cd build/$package
-      if $root_path/src/cmake/bootstrap --parallel=$make_threads --prefix=$root_path/install/cmake
+      bootstrap_cmd="$root_path/src/cmake/bootstrap --parallel=$make_threads --prefix=$root_path/install/cmake"
+      echo "running $bootstrap_cmd"
+      if eval $bootstrap_cmd
       then
         echo "CMake bootstrap succeeded, marking config as not stale"
         cd $root_path
