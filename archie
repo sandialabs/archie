@@ -96,6 +96,7 @@ function archie_configure () {
     cd build/$package
     echo "sourcing packages/$package/cmake_configure"
     cmake_args=()
+    export ${package}_src=$root_path/src/$package
     source $root_path/packages/$package/cmake_configure
     cmake_cmd+="${cmake_args[@]} "
     rm -rf CMakeCache.txt CMakeFiles/
