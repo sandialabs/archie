@@ -3,9 +3,16 @@
 root_path="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 cd $root_path
 
-package_stack=()
+if [[ ! -e archie_machine ]]
+then
+  echo "there is no file $root_path/archie_machine"
+  echo "please copy one of the provided files, such as"
+  echo "  cp configs/mac archie_machine"
+  echo "or create your own"
+  exit -1
+fi
 
-make_threads=4
+package_stack=()
 
 function archie_clone () {
   if [[ -e packages/$package/git_url ]]
@@ -258,6 +265,10 @@ function archie_depended_on_by () {
 }
 
 function archie_global_staleness () {
+  for package in "${topsorted_packages[@]}"
+  do
+    archie_local_staleness
+  done
   for package in "${topsorted_packages[@]}"
   do
     for upstream in `cat .archie/$package/depends_on`
