@@ -400,12 +400,8 @@ function archie_changed () {
     packages/*/git_url)
       archie_changed_clone $1
       ;;
-    archie)
-      # do nothing if this script itself changed
-      ;;
     *)
-      echo "$1 is not a recognized path in the archie tree"
-      exit -1
+      echo "Not reacting to change of $1"
       ;;
   esac
 }
