@@ -1,4 +1,5 @@
 cmake_args+=("-DBUILD_SHARED_LIBS:BOOL=ON")
+cmake_args+=("-DBUILD_TESTING:BOOL=ON")
 cmake_args+=("-DOmega_h_USE_Trilinos:BOOL=ON")
 cmake_args+=("-DOmega_h_USE_KokkosCore:BOOL=OFF")
 cmake_args+=("-DOmega_h_USE_SEACASExodus:BOOL=ON")
