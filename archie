@@ -189,6 +189,7 @@ function archie_clone_staleness () {
   if [[ ! -d src/$package ]]
   then
     echo "$package clone is stale because src/$package doesn't exist"
+    mkdir -p .archie/$package
     touch .archie/$package/clone_is_stale
     return
   fi
@@ -203,12 +204,14 @@ function archie_config_staleness () {
   if [[ ! -d src/$package ]]
   then
     echo "$package config is stale because src/$package doesn't exist"
+    mkdir -p .archie/$package
     touch .archie/$package/config_is_stale
     return
   fi
   if [[ ! -d build/$package ]]
   then
     echo "$package config is stale because build/$package doesn't exist"
+    mkdir -p .archie/$package
     touch .archie/$package/config_is_stale
     return
   fi
@@ -223,12 +226,14 @@ function archie_local_install_staleness () {
   if [[ -e .archie/$package/clone_is_stale ]]
   then
     echo "$package install is stale because $package clone is stale"
+    mkdir -p .archie/$package
     touch .archie/$package/install_is_stale
     return
   fi
   if [[ -e .archie/$package/config_is_stale ]]
   then
     echo "$package install is stale because $package config is stale"
+    mkdir -p .archie/$package
     touch .archie/$package/install_is_stale
     return
   fi
@@ -282,6 +287,7 @@ function archie_global_staleness () {
     do
       if [[ -e .archie/$upstream/install_is_stale ]]
       then
+        mkdir -p .archie/$package
         touch .archie/$package/install_is_stale
       fi
     done
@@ -298,6 +304,7 @@ function archie_topsort_visit () {
     echo "package dependency graph has a cycle!"
     exit -1
   fi
+  mkdir -p .archie/$package
   touch .archie/$package/temporary_mark
   if [[ -e .archie/$package/depended_on_by ]]
   then
@@ -309,6 +316,7 @@ function archie_topsort_visit () {
       archie_pop
     done
   fi
+  mkdir -p .archie/$package
   touch .archie/$package/permanent_mark
   topsorted_packages=("$package" "${topsorted_packages[@]}")
 }
@@ -367,6 +375,7 @@ function archie_changed_config () {
   package=`basename $dir`
   assert_package
   echo "marking $package's config as stale per user request"
+  mkdir -p .archie/$package
   touch .archie/$package/config_is_stale
 }
 
@@ -375,6 +384,7 @@ function archie_changed_clone () {
   package=`basename $dir`
   assert_package
   echo "marking $package's clone as stale per user request"
+  mkdir -p .archie/$package
   touch .archie/$package/clone_is_stale
 }
 
