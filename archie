@@ -3,15 +3,15 @@
 root_path="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 cd $root_path
 
-if [[ ! -e archie_machine ]]
+if [[ ! -e archie_config ]]
 then
-  echo "there is no file $root_path/archie_machine"
+  echo "there is no file $root_path/archie_config"
   echo "please copy one of the provided files, such as"
-  echo "  cp configs/mac archie_machine"
+  echo "  cp configs/mac archie_config"
   echo "or create your own"
   exit -1
 else
-  source archie_machine
+  source archie_config
 fi
 
 package_stack=()
@@ -489,10 +489,10 @@ function archie_pull () {
 
 if [ -z "$1" ]
 then
-  echo "no command given"
+  echo "no command given."
   echo "available commands are:"
   echo "  update"
-  echo "ensure all packages are built up-to-date with external changes"
+  echo "ensure all package builds are up-to-date"
   echo "  changed src/<pkg>"
   echo "update assuming <pkg> source changed"
   echo "  changed packages/<pkg>/cmake_configure"
@@ -501,6 +501,10 @@ then
   echo "update assuming <pkg> origin URL changed"
   echo "  changed packages/<pkg>/*.tar.gz"
   echo "update assuming <pkg> tarball contents changed"
+  echo "  pull self"
+  echo "update the archie repo itself and react to changes"
+  echo "  pull src/<pkg>"
+  echo "update the <pkg> repo and rebuild accordingly"
   exit
 fi
 
