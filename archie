@@ -96,6 +96,7 @@ function archie_configure () {
     cd build/$package
     echo "sourcing packages/$package/cmake_configure"
     cmake_args=()
+    export ${package}_src=$root_path/src/$package
     source $root_path/packages/$package/cmake_configure
     cmake_cmd+="${cmake_args[@]} "
     rm -rf CMakeCache.txt CMakeFiles/
@@ -247,6 +248,7 @@ function archie_depends_on () {
     then
       source $package_path/depends_on
     fi
+    mkdir -p .archie/$package
     echo "${depends_on[@]}" > .archie/$package/depends_on
   done
 }
@@ -423,6 +425,7 @@ function archie_pull_src () {
     else
       echo "src/$package modified by git pull"
       echo "marking $package's install as stale per user request"
+      mkdir -p .archie/$package
       touch .archie/$package/install_is_stale
     fi
     cd $root_path
