@@ -69,7 +69,12 @@ function archie_clone () {
 function archie_configure () {
   if [[ -e packages/$package/cmake_configure ]]
   then
-    cmake_cmd="$root_path/install/cmake/bin/cmake "
+    if [[ -z $external_cmake ]]
+    then
+      cmake_cmd="$root_path/install/cmake/bin/cmake "
+    else
+      cmake_cmd="$external_cmake "
+    fi
     if [[ -e $root_path/packages/$package/src_subdir ]]
     then
       subdir=`cat $root_path/packages/$package/src_subdir`
@@ -245,7 +250,7 @@ function archie_depends_on () {
   do
     package=`basename $package_path`
     depends_on=()
-    if [[ "$package" != "cmake" ]]
+    if [[ "$package" != "cmake" ]] && [[ -z $external_cmake ]]
     then
       depends_on+=("cmake")
     fi
@@ -342,7 +347,10 @@ function archie_topsort () {
 function archie_global_update () {
   for package in "${topsorted_packages[@]}"
   do
-    archie_update_package
+    if [[ "$package" != "cmake" ]] || [[ -z $external_cmake ]]
+    then
+      archie_update_package
+    fi
   done
 }
 
