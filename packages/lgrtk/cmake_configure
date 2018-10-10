@@ -9,3 +9,7 @@ if [[ ! -z "$lgr_elements" ]]
 then
   cmake_args+=("-DLGR_ELEMENTS:STRING=$lgr_elements")
 fi
+if [[ "$backend" == "cuda" ]]
+then
+  cmake_args+=("-DCMAKE_CXX_COMPILER:FILEPATH=$omega_h_install/bin/nvcc_wrapper")
+fi
