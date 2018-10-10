@@ -17,3 +17,9 @@ if [[ ! -z $arch ]]
 then
   cmake_args+=("-DOmega_h_ARCH:STRING=$arch")
 fi
+cuda_version=`nvcc --version | tail -n 1 | cut -d ',' -f 2 | cut -d ' ' -f 3`
+if [[ "$cuda_version" == "9.0" ]]
+then
+  cmake_args+=("-DOmega_h_CXX_WARNINGS:BOOL=OFF")
+  cmake_args+=("-DOmega_h_EXTRA_CXX_FLAGS:STRING=-w")
+fi
