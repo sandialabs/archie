@@ -5,3 +5,7 @@ if [[ ! -z "$cubit" ]]
 then
   cmake_args+=("-DCUBIT_PREFIX:PATH=$cubit")
 fi
+if [[ ! -z "$lgr_elements" ]]
+then
+  cmake_args+=("-DLGR_ELEMENTS:STRING=$lgr_elements")
+fi
