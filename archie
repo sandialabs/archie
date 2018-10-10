@@ -106,6 +106,7 @@ function archie_configure () {
     cmake_cmd+="${cmake_args[@]} "
     rm -rf CMakeCache.txt CMakeFiles/
     echo "running: $cmake_cmd"
+    echo "$cmake_cmd" > $root_path/.archie/$package/cmake_command
     if eval $cmake_cmd
     then
       cd $root_path
