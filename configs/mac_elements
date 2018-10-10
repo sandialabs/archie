@@ -1,0 +1,3 @@
+make_threads=4
+cubit=/Applications/Cubit-15.3
+lgr_elements="Bar2\;Tri3"
