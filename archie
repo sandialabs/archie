@@ -454,8 +454,8 @@ function archie_pull_src () {
     else
       echo "src/$package modified by git pull"
       echo "marking $package's install as stale per user request"
-      mkdir -p .archie/$package
-      touch .archie/$package/install_is_stale
+      mkdir -p $root_path/.archie/$package
+      touch $root_path/.archie/$package/install_is_stale
     fi
     cd $root_path
   else
