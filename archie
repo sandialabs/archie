@@ -482,6 +482,9 @@ function archie_pull_self () {
     do
       archie_changed $path
     done
+    echo "recursively calling new archie script"
+    $root_path/archie update
+    exit 0
   else
     echo "git merge FETCH_HEAD failed"
   fi
