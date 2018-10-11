@@ -1,1 +1,2 @@
 depends_on+=("lgrtk")
+depends_on+=("omega_h")
