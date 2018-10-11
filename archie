@@ -143,12 +143,26 @@ function archie_configure () {
 function archie_install () {
   cd build/$package
   make_cmd="make install -j $make_threads"
-  echo "running $make_cmd"
+  echo "running $make_cmd in build/$package"
   if eval $make_cmd
   then
-    cd $root_path
-    echo "make install of $package succeeded, marking install as not stale"
-    rm -f .archie/$package/install_is_stale
+    echo "make install of $package succeeded"
+    if [[ -z $external_cmake ]]
+    then
+      ctest_exe=$root_path/install/cmake/bin/ctest
+    else
+      ctest_exe=`dirname $external_cmake`/ctest
+    fi
+    echo "running $ctest_exe in $PWD"
+    if $ctest_exe
+    then
+      echo "CTest of $package succeeded, marking install as not stale"
+      cd $root_path
+      rm -f .archie/$package/install_is_stale
+    else
+      echo "CTest of $package failed"
+      exit -1
+    fi
   else
     echo "make install of $package failed"
     exit -1
