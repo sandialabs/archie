@@ -297,6 +297,7 @@ function archie_depended_on_by () {
 }
 
 function archie_global_staleness () {
+  echo "topsorted_packages = ${topsorted_packages[@]}"
   for package in "${topsorted_packages[@]}"
   do
     archie_local_staleness
@@ -326,27 +327,42 @@ function archie_topsort_visit () {
   fi
   mkdir -p .archie/$package
   touch .archie/$package/temporary_mark
+  if [[ -e packages/$package/always_build ]]
+  then
+    mkdir -p .archie/$package
+    touch .archie/$package/should_build
+  fi
   if [[ -e .archie/$package/depended_on_by ]]
   then
+    local downstream
     for downstream in `cat .archie/$package/depended_on_by`
     do
       archie_push
       package=$downstream
       archie_topsort_visit
       archie_pop
+      if [[ -e .archie/$downstream/should_build ]]
+      then
+        touch .archie/$package/should_build
+      fi
     done
   fi
   mkdir -p .archie/$package
   touch .archie/$package/permanent_mark
-  topsorted_packages=("$package" "${topsorted_packages[@]}")
+  if [[ -e .archie/$package/should_build ]]
+  then
+    topsorted_packages=("$package" "${topsorted_packages[@]}")
+  fi
 }
 
 function archie_topsort () {
+  echo "sorting dependencies of always_build packages"
   for package_path in packages/*/
   do
     package=`basename $package_path`
     rm -f .archie/$package/temporary_mark
     rm -f .archie/$package/permanent_mark
+    rm -f .archie/$package/should_build
   done
   topsorted_packages=()
   for package_path in packages/*/
@@ -362,10 +378,7 @@ function archie_topsort () {
 function archie_global_update () {
   for package in "${topsorted_packages[@]}"
   do
-    if [[ "$package" != "cmake" ]] || [[ -z $external_cmake ]]
-    then
-      archie_update_package
-    fi
+    archie_update_package
   done
 }
 
