@@ -1,2 +1,3 @@
 make_threads=4
+external_cmake_install=/Applications/CMake.app/Contents
 cubit=/Applications/Cubit-15.3

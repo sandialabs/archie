@@ -67,14 +67,32 @@ function archie_clone () {
 }
 
 function archie_configure () {
+  echo "archie_configure $package"
   if [[ -e packages/$package/cmake_configure ]]
   then
-    if [[ -z $external_cmake ]]
+    echo "cmake_configure exists"
+    cmake_prefix_path=""
+    if [[ -e $root_path/.archie/$package/depends_on ]]
     then
-      cmake_cmd="$root_path/install/cmake/bin/cmake "
-    else
-      cmake_cmd="$external_cmake "
+      echo "depends_on exists"
+      for upstream in `cat $root_path/.archie/$package/depends_on`
+      do
+        echo "depends_on $upstream"
+        external_install="external_${upstream}_install"
+        echo "external_install=external_${upstream}_install"
+        echo '${!external_install}=' "${!external_install}"
+        if [[ -z "${!external_install}" ]]
+        then
+          upstream_path="$root_path/install/$upstream"
+        else
+          upstream_path="${!external_install}"
+        fi
+        echo "${upstream}_install=$upstream_path"
+        export ${upstream}_install=$upstream_path
+        cmake_prefix_path+=";$upstream_path"
+      done
     fi
+    cmake_cmd="$cmake_install/bin/cmake "
     if [[ -e $root_path/packages/$package/src_subdir ]]
     then
       subdir=`cat $root_path/packages/$package/src_subdir`
@@ -83,17 +101,8 @@ function archie_configure () {
       cmake_cmd+="$root_path/src/$package "
     fi
     cmake_cmd+="-DCMAKE_INSTALL_PREFIX=$root_path/install/$package "
-    if [[ -e $root_path/packages/$package/depends_on ]]
+    if [[ ! -z $cmake_prefix_path ]]
     then
-      depends_on=()
-      source $root_path/packages/$package/depends_on
-      cmake_prefix_path=""
-      for upstream in "${depends_on[@]}"
-      do
-        upstream_path="$root_path/install/$upstream"
-        cmake_prefix_path+=";$upstream_path"
-        export ${upstream}_install=$upstream_path
-      done
       cmake_cmd+="-DCMAKE_PREFIX_PATH=\"$cmake_prefix_path\" "
     fi
     echo "packages/$package/cmake_configure exists"
@@ -148,11 +157,11 @@ function archie_install () {
   if eval $make_cmd
   then
     echo "make install of $package succeeded"
-    if [[ -z $external_cmake ]]
+    if [[ -z "${external_cmake_install}" ]]
     then
-      ctest_exe=$root_path/install/cmake/bin/ctest
+      ctest_exe="$root_path/install/cmake/bin/ctest"
     else
-      ctest_exe=`dirname $external_cmake`/ctest
+      ctest_exe="${external_cmake_install}/bin/ctest"
     fi
     echo "running $ctest_exe in $PWD"
     if $ctest_exe
@@ -195,6 +204,11 @@ function archie_pop () {
 }
 
 function archie_local_staleness () {
+  external_install="external_${package}_install"
+  if [[ ! -z "${!external_install}" ]]
+  then
+    return
+  fi
   archie_clone_staleness
   archie_config_staleness
   archie_local_install_staleness
@@ -265,7 +279,7 @@ function archie_depends_on () {
   do
     package=`basename $package_path`
     depends_on=()
-    if [[ "$package" != "cmake" ]] && [[ -z $external_cmake ]]
+    if [[ "$package" != "cmake" ]]
     then
       depends_on+=("cmake")
     fi
