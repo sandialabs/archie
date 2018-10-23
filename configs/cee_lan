@@ -1,0 +1,5 @@
+make_threads=8
+module load sems-env
+module load sems-cmake/3.12.2
+module load sems-gcc/7.3.0
+external_cmake_install=${SEMS_CMAKE_ROOT}
