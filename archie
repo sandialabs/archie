@@ -271,6 +271,13 @@ function archie_local_install_staleness () {
     touch .archie/$package/install_is_stale
     return
   fi
+  if [[ ! -d install/$package ]]
+  then
+    echo "$package install is stale because install/$package doesn't exist"
+    mkdir -p .archie/$package
+    touch .archie/$package/install_is_stale
+    return
+  fi
 }
 
 function archie_depends_on () {
