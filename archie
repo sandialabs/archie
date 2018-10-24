@@ -132,7 +132,10 @@ function archie_configure () {
       echo "package is cmake"
       mkdir -p build/$package
       cd build/$package
-      bootstrap_cmd="$root_path/src/cmake/bootstrap --parallel=$make_threads --prefix=$root_path/install/cmake"
+      bootstrap_cmd="$root_path/src/cmake/bootstrap "
+      bootstrap_cmd+="--parallel=$make_threads "
+      bootstrap_cmd+="--prefix=$root_path/install/cmake "
+      bootstrap_cmd+="-- -DBUILD_TESTING:BOOL=OFF "
       echo "running $bootstrap_cmd"
       if eval $bootstrap_cmd
       then
