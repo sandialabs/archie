@@ -132,7 +132,10 @@ function archie_configure () {
       echo "package is cmake"
       mkdir -p build/$package
       cd build/$package
-      bootstrap_cmd="$root_path/src/cmake/bootstrap --parallel=$make_threads --prefix=$root_path/install/cmake"
+      bootstrap_cmd="$root_path/src/cmake/bootstrap "
+      bootstrap_cmd+="--parallel=$make_threads "
+      bootstrap_cmd+="--prefix=$root_path/install/cmake "
+      bootstrap_cmd+="-- -DBUILD_TESTING:BOOL=OFF "
       echo "running $bootstrap_cmd"
       if eval $bootstrap_cmd
       then
@@ -157,21 +160,29 @@ function archie_install () {
   if eval $make_cmd
   then
     echo "make install of $package succeeded"
-    if [[ -z "${external_cmake_install}" ]]
+    if [[ ! -e "$root_path/packages/$package/dont_test" ]]
     then
-      ctest_exe="$root_path/install/cmake/bin/ctest"
+      if [[ -z "${external_cmake_install}" ]]
+      then
+        ctest_exe="$root_path/install/cmake/bin/ctest"
+      else
+        ctest_exe="${external_cmake_install}/bin/ctest"
+      fi
+      echo "running $ctest_exe in $PWD"
+      if $ctest_exe
+      then
+        echo "CTest of $package succeeded, marking install as not stale"
+        cd $root_path
+        rm -f .archie/$package/install_is_stale
+      else
+        echo "CTest of $package failed"
+        exit -1
+      fi
     else
-      ctest_exe="${external_cmake_install}/bin/ctest"
-    fi
-    echo "running $ctest_exe in $PWD"
-    if $ctest_exe
-    then
-      echo "CTest of $package succeeded, marking install as not stale"
+      echo "testing of $package disabled by packages/$packages/dont_test"
+      echo "marking install as not stale"
       cd $root_path
       rm -f .archie/$package/install_is_stale
-    else
-      echo "CTest of $package failed"
-      exit -1
     fi
   else
     echo "make install of $package failed"
@@ -267,6 +278,13 @@ function archie_local_install_staleness () {
   if [[ -e .archie/$package/config_is_stale ]]
   then
     echo "$package install is stale because $package config is stale"
+    mkdir -p .archie/$package
+    touch .archie/$package/install_is_stale
+    return
+  fi
+  if [[ ! -d install/$package ]]
+  then
+    echo "$package install is stale because install/$package doesn't exist"
     mkdir -p .archie/$package
     touch .archie/$package/install_is_stale
     return
@@ -514,7 +532,20 @@ function archie_pull_self () {
     exit 0
   else
     echo "git merge FETCH_HEAD failed"
+    exit -1
   fi
+}
+
+function archie_pull_all () {
+  for src_path in src/*/
+  do
+    package=`basename $src_path`
+    if [[ -e "packages/$package/git_url" ]]
+    then
+      archie_pull_src "src/$package"
+    fi
+  done
+  archie_pull_self
 }
 
 function archie_pull () {
@@ -527,6 +558,9 @@ function archie_pull () {
     exit -1
   fi
   case "$1" in
+    all)
+      archie_pull_all
+      ;;
     src/*)
       archie_pull_src $1
       ;;
