@@ -1,8 +1,11 @@
 cmake_args+=("-DBUILD_SHARED_LIBS:BOOL=ON")
 cmake_args+=("-DBUILD_TESTING:BOOL=ON")
 cmake_args+=("-DOmega_h_USE_Trilinos:BOOL=ON")
-cmake_args+=("-DOmega_h_USE_KokkosCore:BOOL=OFF")
 cmake_args+=("-DOmega_h_USE_SEACASExodus:BOOL=ON")
+cmake_args+=("-DOmega_h_USE_KokkosCore:BOOL=OFF")
+cmake_args+=("-DOmega_h_USE_TeuchosParameterList:BOOL=OFF")
+cmake_args+=("-DOmega_h_USE_TeuchosComm:BOOL=OFF")
+cmake_args+=("-DOmega_h_USE_TeuchosParser:BOOL=OFF")
 cmake_args+=("-DTrilinos_PREFIX:PATH=$trilinos_install")
 if [[ "$backend" == "cuda" ]]
 then

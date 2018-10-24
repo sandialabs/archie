@@ -67,14 +67,32 @@ function archie_clone () {
 }
 
 function archie_configure () {
+  echo "archie_configure $package"
   if [[ -e packages/$package/cmake_configure ]]
   then
-    if [[ -z $external_cmake ]]
+    echo "cmake_configure exists"
+    cmake_prefix_path=""
+    if [[ -e $root_path/.archie/$package/depends_on ]]
     then
-      cmake_cmd="$root_path/install/cmake/bin/cmake "
-    else
-      cmake_cmd="$external_cmake "
+      echo "depends_on exists"
+      for upstream in `cat $root_path/.archie/$package/depends_on`
+      do
+        echo "depends_on $upstream"
+        external_install="external_${upstream}_install"
+        echo "external_install=external_${upstream}_install"
+        echo '${!external_install}=' "${!external_install}"
+        if [[ -z "${!external_install}" ]]
+        then
+          upstream_path="$root_path/install/$upstream"
+        else
+          upstream_path="${!external_install}"
+        fi
+        echo "${upstream}_install=$upstream_path"
+        export ${upstream}_install=$upstream_path
+        cmake_prefix_path+=";$upstream_path"
+      done
     fi
+    cmake_cmd="$cmake_install/bin/cmake "
     if [[ -e $root_path/packages/$package/src_subdir ]]
     then
       subdir=`cat $root_path/packages/$package/src_subdir`
@@ -83,17 +101,8 @@ function archie_configure () {
       cmake_cmd+="$root_path/src/$package "
     fi
     cmake_cmd+="-DCMAKE_INSTALL_PREFIX=$root_path/install/$package "
-    if [[ -e $root_path/packages/$package/depends_on ]]
+    if [[ ! -z $cmake_prefix_path ]]
     then
-      depends_on=()
-      source $root_path/packages/$package/depends_on
-      cmake_prefix_path=""
-      for upstream in "${depends_on[@]}"
-      do
-        upstream_path="$root_path/install/$upstream"
-        cmake_prefix_path+=";$upstream_path"
-        export ${upstream}_install=$upstream_path
-      done
       cmake_cmd+="-DCMAKE_PREFIX_PATH=\"$cmake_prefix_path\" "
     fi
     echo "packages/$package/cmake_configure exists"
@@ -150,11 +159,11 @@ function archie_install () {
     echo "make install of $package succeeded"
     if [[ ! -e "$root_path/packages/$package/dont_test" ]]
     then
-      if [[ -z $external_cmake ]]
+      if [[ -z "${external_cmake_install}" ]]
       then
-        ctest_exe=$root_path/install/cmake/bin/ctest
+        ctest_exe="$root_path/install/cmake/bin/ctest"
       else
-        ctest_exe=`dirname $external_cmake`/ctest
+        ctest_exe="${external_cmake_install}/bin/ctest"
       fi
       echo "running $ctest_exe in $PWD"
       if $ctest_exe
@@ -203,6 +212,11 @@ function archie_pop () {
 }
 
 function archie_local_staleness () {
+  external_install="external_${package}_install"
+  if [[ ! -z "${!external_install}" ]]
+  then
+    return
+  fi
   archie_clone_staleness
   archie_config_staleness
   archie_local_install_staleness
@@ -265,6 +279,13 @@ function archie_local_install_staleness () {
     touch .archie/$package/install_is_stale
     return
   fi
+  if [[ ! -d install/$package ]]
+  then
+    echo "$package install is stale because install/$package doesn't exist"
+    mkdir -p .archie/$package
+    touch .archie/$package/install_is_stale
+    return
+  fi
 }
 
 function archie_depends_on () {
@@ -273,7 +294,7 @@ function archie_depends_on () {
   do
     package=`basename $package_path`
     depends_on=()
-    if [[ "$package" != "cmake" ]] && [[ -z $external_cmake ]]
+    if [[ "$package" != "cmake" ]]
     then
       depends_on+=("cmake")
     fi
@@ -305,6 +326,7 @@ function archie_depended_on_by () {
 }
 
 function archie_global_staleness () {
+  echo "topsorted_packages = ${topsorted_packages[@]}"
   for package in "${topsorted_packages[@]}"
   do
     archie_local_staleness
@@ -334,27 +356,42 @@ function archie_topsort_visit () {
   fi
   mkdir -p .archie/$package
   touch .archie/$package/temporary_mark
+  if [[ -e packages/$package/always_build ]]
+  then
+    mkdir -p .archie/$package
+    touch .archie/$package/should_build
+  fi
   if [[ -e .archie/$package/depended_on_by ]]
   then
+    local downstream
     for downstream in `cat .archie/$package/depended_on_by`
     do
       archie_push
       package=$downstream
       archie_topsort_visit
       archie_pop
+      if [[ -e .archie/$downstream/should_build ]]
+      then
+        touch .archie/$package/should_build
+      fi
     done
   fi
   mkdir -p .archie/$package
   touch .archie/$package/permanent_mark
-  topsorted_packages=("$package" "${topsorted_packages[@]}")
+  if [[ -e .archie/$package/should_build ]]
+  then
+    topsorted_packages=("$package" "${topsorted_packages[@]}")
+  fi
 }
 
 function archie_topsort () {
+  echo "sorting dependencies of always_build packages"
   for package_path in packages/*/
   do
     package=`basename $package_path`
     rm -f .archie/$package/temporary_mark
     rm -f .archie/$package/permanent_mark
+    rm -f .archie/$package/should_build
   done
   topsorted_packages=()
   for package_path in packages/*/
@@ -370,10 +407,7 @@ function archie_topsort () {
 function archie_global_update () {
   for package in "${topsorted_packages[@]}"
   do
-    if [[ "$package" != "cmake" ]] || [[ -z $external_cmake ]]
-    then
-      archie_update_package
-    fi
+    archie_update_package
   done
 }
 
