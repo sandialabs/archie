@@ -1,1 +1,1 @@
-depends_on+=("trilinos")
+depends_on+=("seacas")
