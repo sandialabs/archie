@@ -66,91 +66,140 @@ function archie_clone () {
   fi
 }
 
+function archie_config_with_cmake () {
+  echo "packages/$package/cmake_configure exists"
+  cmake_prefix_path=""
+  if [[ -e $root_path/.archie/$package/depends_on ]]
+  then
+    echo "depends_on exists"
+    for upstream in `cat $root_path/.archie/$package/depends_on`
+    do
+      echo "depends_on $upstream"
+      external_install="external_${upstream}_install"
+      echo "external_install=external_${upstream}_install"
+      echo '${!external_install}=' "${!external_install}"
+      if [[ -z "${!external_install}" ]]
+      then
+        upstream_path="$root_path/install/$upstream"
+      else
+        upstream_path="${!external_install}"
+      fi
+      echo "${upstream}_install=$upstream_path"
+      export ${upstream}_install=$upstream_path
+      cmake_prefix_path+=";$upstream_path"
+    done
+  fi
+  cmake_cmd="$cmake_install/bin/cmake "
+  if [[ -e $root_path/packages/$package/src_subdir ]]
+  then
+    subdir=`cat $root_path/packages/$package/src_subdir`
+    cmake_cmd+="$root_path/src/$package/$subdir "
+  else
+    cmake_cmd+="$root_path/src/$package "
+  fi
+  cmake_cmd+="-DCMAKE_INSTALL_PREFIX=$root_path/install/$package "
+  if [[ ! -z $cmake_prefix_path ]]
+  then
+    cmake_cmd+="-DCMAKE_PREFIX_PATH=\"$cmake_prefix_path\" "
+  fi
+  mkdir -p build/$package
+  cd build/$package
+  echo "sourcing packages/$package/cmake_configure"
+  cmake_args=()
+  export ${package}_src=$root_path/src/$package
+  source $root_path/packages/$package/cmake_configure
+  cmake_cmd+="${cmake_args[@]} "
+  rm -rf CMakeCache.txt CMakeFiles/
+  echo "running: $cmake_cmd"
+  echo "$cmake_cmd" > $root_path/.archie/$package/cmake_command
+  if eval $cmake_cmd
+  then
+    cd $root_path
+    echo "CMake succeeded for $package, marking config as not stale"
+    rm -f .archie/$package/config_is_stale
+  else
+    echo "CMake failed for $package"
+    exit -1
+  fi
+}
+
+function archie_call_package_configure () {
+  if [[ -e $root_path/packages/$package/src_subdir ]]
+  then
+    subdir=`cat $root_path/packages/$package/src_subdir`
+    config_cmd="$root_path/src/$package/$subdir/configure "
+  else
+    config_cmd="$root_path/src/$package/configure "
+  fi
+  config_cmd+="--prefix=$root_path/install/$package "
+  if [[ -e $root_path/packages/$package/depends_on ]]
+  then
+    depends_on=()
+    source $root_path/packages/$package/depends_on
+    for upstream in "${depends_on[@]}"
+    do
+      upstream_path="$root_path/install/$upstream"
+      export ${upstream}_install=$upstream_path
+    done
+  fi
+  mkdir -p build/$package
+  cd build/$package
+  echo "sourcing packages/$package/configure"
+  config_args=()
+  export ${package}_src=$root_path/src/$package
+  source $root_path/packages/$package/configure
+  config_cmd+="${config_args[@]} "
+  echo "running: $config_cmd"
+  echo "$config_cmd" > $root_path/.archie/$package/configure_command
+  if eval $config_cmd
+  then
+    cd $root_path
+    echo "configure succeeded for $package, marking config as not stale"
+    rm -f .archie/$package/config_is_stale
+  else
+    echo "configure failed for $package"
+    exit -1
+  fi
+}
+
+function archie_config_cmake_itself () {
+  mkdir -p build/$package
+  cd build/$package
+  bootstrap_cmd="$root_path/src/cmake/bootstrap "
+  bootstrap_cmd+="--parallel=$make_threads "
+  bootstrap_cmd+="--prefix=$root_path/install/cmake "
+  bootstrap_cmd+="-- -DBUILD_TESTING:BOOL=OFF "
+  echo "running $bootstrap_cmd"
+  if eval $bootstrap_cmd
+  then
+    echo "CMake bootstrap succeeded, marking config as not stale"
+    cd $root_path
+    rm -f .archie/cmake/config_is_stale
+  else
+    echo "CMake bootstrap failed"
+    exit -1
+  fi
+}
+
 function archie_configure () {
-  echo "archie_configure $package"
+  if [[ "$package" == "cmake" ]]
+  then
+    echo "package is cmake"
+    archie_config_cmake_itself
+    return
+  fi
   if [[ -e packages/$package/cmake_configure ]]
   then
-    echo "cmake_configure exists"
-    cmake_prefix_path=""
-    if [[ -e $root_path/.archie/$package/depends_on ]]
-    then
-      echo "depends_on exists"
-      for upstream in `cat $root_path/.archie/$package/depends_on`
-      do
-        echo "depends_on $upstream"
-        external_install="external_${upstream}_install"
-        echo "external_install=external_${upstream}_install"
-        echo '${!external_install}=' "${!external_install}"
-        if [[ -z "${!external_install}" ]]
-        then
-          upstream_path="$root_path/install/$upstream"
-        else
-          upstream_path="${!external_install}"
-        fi
-        echo "${upstream}_install=$upstream_path"
-        export ${upstream}_install=$upstream_path
-        cmake_prefix_path+=";$upstream_path"
-      done
-    fi
-    cmake_cmd="$cmake_install/bin/cmake "
-    if [[ -e $root_path/packages/$package/src_subdir ]]
-    then
-      subdir=`cat $root_path/packages/$package/src_subdir`
-      cmake_cmd+="$root_path/src/$package/$subdir "
-    else
-      cmake_cmd+="$root_path/src/$package "
-    fi
-    cmake_cmd+="-DCMAKE_INSTALL_PREFIX=$root_path/install/$package "
-    if [[ ! -z $cmake_prefix_path ]]
-    then
-      cmake_cmd+="-DCMAKE_PREFIX_PATH=\"$cmake_prefix_path\" "
-    fi
-    echo "packages/$package/cmake_configure exists"
-    mkdir -p build/$package
-    cd build/$package
-    echo "sourcing packages/$package/cmake_configure"
-    cmake_args=()
-    export ${package}_src=$root_path/src/$package
-    source $root_path/packages/$package/cmake_configure
-    cmake_cmd+="${cmake_args[@]} "
-    rm -rf CMakeCache.txt CMakeFiles/
-    echo "running: $cmake_cmd"
-    echo "$cmake_cmd" > $root_path/.archie/$package/cmake_command
-    if eval $cmake_cmd
-    then
-      cd $root_path
-      echo "CMake succeeded for $package, marking config as not stale"
-      rm -f .archie/$package/config_is_stale
-    else
-      echo "CMake failed for $package"
-      exit -1
-    fi
-  else
-    echo "packages/$package/cmake_configure doesn't exist"
-    if [[ "$package" == "cmake" ]]
-    then
-      echo "package is cmake"
-      mkdir -p build/$package
-      cd build/$package
-      bootstrap_cmd="$root_path/src/cmake/bootstrap "
-      bootstrap_cmd+="--parallel=$make_threads "
-      bootstrap_cmd+="--prefix=$root_path/install/cmake "
-      bootstrap_cmd+="-- -DBUILD_TESTING:BOOL=OFF "
-      echo "running $bootstrap_cmd"
-      if eval $bootstrap_cmd
-      then
-        echo "CMake bootstrap succeeded, marking config as not stale"
-        cd $root_path
-        rm -f .archie/cmake/config_is_stale
-      else
-        echo "CMake bootstrap failed"
-        exit -1
-      fi
-    else
-      echo "package is $package, not cmake"
-      exit -1
-    fi
+    archie_config_with_cmake
+    return
   fi
+  if [[ -e packages/$package/configure ]]
+  then
+    archie_call_package_configure
+    return
+  fi
+  echo "couldn't find a way to configure $package"
+  exit -1
 }
 
 function archie_install () {
