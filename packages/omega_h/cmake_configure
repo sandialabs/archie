@@ -4,6 +4,10 @@ cmake_args+=("-DOmega_h_USE_Trilinos:BOOL=OFF")
 cmake_args+=("-DOmega_h_USE_SEACASExodus:BOOL=ON")
 cmake_args+=("-DOmega_h_USE_ZLIB:BOOL=OFF")
 cmake_args+=("-DSEACASExodus_PREFIX:PATH=$seacas_install")
+if [[ "$check_bounds" == "yes" ]]
+then
+  cmake_args+=("-DOmega_h_CHECK_BOUNDS:BOOL=ON")
+fi
 if [[ "$backend" == "cuda" ]]
 then
   cmake_args+=("-DOmega_h_USE_CUDA:BOOL=ON")
