@@ -1,5 +1,7 @@
 #!/bin/bash -e
 
+set -o pipefail
+
 root_path="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 cd $root_path
 
@@ -568,7 +570,8 @@ function archie_pull_self () {
     echo "git fetch failed"
     exit -1
   fi
-  git diff --name-status HEAD..FETCH_HEAD | grep -v "^D" | cut -f 2 > .archie/pull_diff
+  # || true to prevent pipefail-induced exit due to grep -v not finding any results
+  git diff --name-status HEAD..FETCH_HEAD | grep -v "^D" | cut -f 2 > .archie/pull_diff || true
   if git merge FETCH_HEAD
   then
     echo "git merge FETCH_HEAD succeeded"
@@ -623,6 +626,45 @@ function archie_pull () {
   esac
 }
 
+function archie_nightly_check_emails () {
+  if [[ -z $nightly_emails ]]
+  then
+    echo "one or more email address must be specified, such as"
+    echo "  nightly_emails=email1@domain.gov,email2@domain.edu"
+    echo "for the nightly tests to run"
+    exit -1
+  fi
+}
+
+function archie_nightly_check_name () {
+  if [[ -z $nightly_name ]]
+  then
+    echo "a nightly name must be specified, such as"
+    echo "  nightly_build=mac_serial"
+    echo "for the nightly test to run"
+    exit -1
+  fi
+}
+
+function archie_nightly () {
+  archie_nightly_check_emails
+  archie_nightly_check_name
+  nightly_file=$root_path/.archie/nightly.txt
+  nightly_cmd="$root_path/archie pull all"
+  nightly_cmd+=" 2>&1 | tee $nightly_file"
+  mkdir -p $root_path/.archie
+  echo "running $nightly_cmd"
+  if eval $nightly_cmd
+  then
+    echo "nightly test succeeded"
+    exit 0
+  else
+    echo "nightly test failed"
+    mail -s "archie $nightly_name nightly failed" "$nightly_emails" < $nightly_file
+    exit -1
+  fi
+}
+
 if [ -z "$1" ]
 then
   echo "no command given."
@@ -641,6 +683,8 @@ then
   echo "update the archie repo itself and react to changes"
   echo "  pull src/<pkg>"
   echo "update the <pkg> repo and rebuild accordingly"
+  echo "  nightly"
+  echo "run nightly tests and email a log on failure"
   exit
 fi
 
@@ -658,6 +702,10 @@ case $1 in
     echo "executing pull $2 command"
     archie_pull $2
     archie_update
+    ;;
+  nightly)
+    echo "executing nightly"
+    archie_nightly
     ;;
   *)
     echo "don't recognize command $1!"
