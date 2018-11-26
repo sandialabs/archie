@@ -523,6 +523,9 @@ function archie_changed () {
     packages/*/cmake_configure)
       archie_changed_config $1
       ;;
+    packages/*/depends_on)
+      archie_changed_config $1
+      ;;
     packages/*/*.tar.gz)
       archie_changed_clone $1
       ;;
