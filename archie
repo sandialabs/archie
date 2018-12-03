@@ -265,6 +265,24 @@ function archie_pop () {
   unset package_stack[${#package_stack[@]}-1]
 }
 
+function archie_clone_staleness () {
+  if [[ -e .archie/$package/clone_is_stale ]]
+  then
+    echo "$package clone was already stale"
+    return
+  fi
+  echo "archie_clone_staleness $package, checking $PWD/src/$package"
+  if [[ ! -d src/$package ]]
+  then
+    echo "$package clone is stale because src/$package doesn't exist"
+    mkdir -p .archie/$package
+    touch .archie/$package/clone_is_stale
+    return
+  else
+    echo "archie_clone_staleness $package, $PWD/src/$package exists!"
+  fi
+}
+
 function archie_local_staleness () {
   external_install="external_${package}_install"
   if [[ ! -z "${!external_install}" ]]
@@ -274,21 +292,6 @@ function archie_local_staleness () {
   archie_clone_staleness
   archie_config_staleness
   archie_local_install_staleness
-}
-
-function archie_clone_staleness () {
-  if [[ -e .archie/$package/clone_is_stale ]]
-  then
-    echo "$package clone was already stale"
-    return
-  fi
-  if [[ ! -d src/$package ]]
-  then
-    echo "$package clone is stale because src/$package doesn't exist"
-    mkdir -p .archie/$package
-    touch .archie/$package/clone_is_stale
-    return
-  fi
 }
 
 function archie_config_staleness () {
