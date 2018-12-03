@@ -546,7 +546,7 @@ function archie_pull_src () {
   assert_package
   cd src/$package
   pull_cmd="git pull 2>&1 | tee $root_path/.archie/pull_output"
-  echo "running $pull_cmd"
+  echo "in src/$package, running $pull_cmd"
   if eval $pull_cmd
   then
     echo "git pull in src/$package succeeded"
