@@ -3,3 +3,6 @@ src
 build
 install
 archie_config
+.project
+.cproject
+.settings
