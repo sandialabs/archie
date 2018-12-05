@@ -1,0 +1,3 @@
+depends_on+=("lgrtk")
+depends_on+=("omega_h")
+depends_on+=("gtest")
