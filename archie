@@ -69,17 +69,13 @@ function archie_clone () {
 }
 
 function archie_config_with_cmake () {
-  echo "packages/$package/cmake_configure exists"
+  echo "configuring $package with CMake"
   cmake_prefix_path=""
   if [[ -e $root_path/.archie/$package/depends_on ]]
   then
-    echo "depends_on exists"
     for upstream in `cat $root_path/.archie/$package/depends_on`
     do
-      echo "depends_on $upstream"
       external_install="external_${upstream}_install"
-      echo "external_install=external_${upstream}_install"
-      echo '${!external_install}=' "${!external_install}"
       if [[ -z "${!external_install}" ]]
       then
         upstream_path="$root_path/install/$upstream"
@@ -271,15 +267,12 @@ function archie_clone_staleness () {
     echo "$package clone was already stale"
     return
   fi
-  echo "archie_clone_staleness $package, checking $PWD/src/$package"
   if [[ ! -d src/$package ]]
   then
     echo "$package clone is stale because src/$package doesn't exist"
     mkdir -p .archie/$package
     touch .archie/$package/clone_is_stale
     return
-  else
-    echo "archie_clone_staleness $package, $PWD/src/$package exists!"
   fi
 }
 
@@ -414,7 +407,6 @@ function archie_topsort_visit () {
   mkdir -p .archie/$package
   touch .archie/$package/temporary_mark
   local external_install="external_${package}_install"
-  echo "external_${package}_install=${!external_install}"
   if [[ -e packages/$package/always_build ]] && [[ -z "${!external_install}" ]]
   then
     mkdir -p .archie/$package
