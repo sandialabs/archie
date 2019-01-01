@@ -413,9 +413,12 @@ function archie_topsort_visit () {
   fi
   mkdir -p .archie/$package
   touch .archie/$package/temporary_mark
-  if [[ -e packages/$package/always_build ]]
+  local external_install="external_${package}_install"
+  echo "external_${package}_install=${!external_install}"
+  if [[ -e packages/$package/always_build ]] && [[ -z "${!external_install}" ]]
   then
     mkdir -p .archie/$package
+    echo "marking $package for building due to always_build"
     touch .archie/$package/should_build
   fi
   if [[ -e .archie/$package/depended_on_by ]]
@@ -427,8 +430,9 @@ function archie_topsort_visit () {
       package=$downstream
       archie_topsort_visit
       archie_pop
-      if [[ -e .archie/$downstream/should_build ]]
+      if [[ -e .archie/$downstream/should_build ]] && [[ -z "${!external_install}" ]]
       then
+        echo "marking $package for building due to $downstream marked for building"
         touch .archie/$package/should_build
       fi
     done
