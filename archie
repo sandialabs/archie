@@ -19,25 +19,19 @@ fi
 package_stack=()
 
 function archie_clone () {
+  rm -rf src/$package
   if [[ -e packages/$package/git_url ]]
   then
     echo "packages/$package/git_url exists"
-    if [[ -d src/$package ]]
+    git_url=`cat packages/$package/git_url`
+    echo "running git clone $git_url src/$package"
+    if git clone $git_url src/$package
     then
-      echo "trying to clone into src/$package but it exists!"
-      echo "if you really want to re-clone please rm -rf src/$package"
-      exit -1
+      echo "git clone $git_url succeeded, marking $package clone as not stale"
+      rm -f .archie/$package/clone_is_stale
     else
-      git_url=`cat packages/$package/git_url`
-      echo "running git clone $git_url src/$package"
-      if git clone $git_url src/$package
-      then
-        echo "git clone $git_url succeeded, marking $package clone as not stale"
-        rm -f .archie/$package/clone_is_stale
-      else
-        echo "git clone $git_url failed"
-        exit -1
-      fi
+      echo "git clone $git_url failed"
+      exit -1
     fi
   else
     echo "packages/$package/git_url doesn't exist"
