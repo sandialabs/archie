@@ -27,3 +27,7 @@ if [[ ! -z $arch ]]
 then
   cmake_args+=("-DOmega_h_ARCH:STRING=$arch")
 fi
+if [[ ! -z $sanitize ]]
+then
+  cmake_args+=("-DOmega_h_EXTRA_CXX_FLAGS:STRING=-fsanitize=$sanitize")
+fi
