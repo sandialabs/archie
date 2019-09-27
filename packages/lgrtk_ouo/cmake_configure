@@ -1,5 +1,6 @@
 cmake_args+=("-DLGR_PREFIX:PATH=$lgrtk_install")
 cmake_args+=("-DBUILD_TESTING:BOOL=ON")
+cmake_args+=("-Dutri_PREFIX:PATH=$utri_install")
 if [[ "$backend" == "cuda" ]]
 then
   cmake_args+=("-DCMAKE_CXX_COMPILER:FILEPATH=$omega_h_install/bin/nvcc_wrapper")

@@ -1,3 +1,5 @@
 depends_on+=("lgrtk")
 depends_on+=("omega_h")
 depends_on+=("gtest")
+depends_on+=("netcdf")
+depends_on+=("utri")
