@@ -1,2 +1,1 @@
-cmake_args+=("-DNetcdf_INCLUDE_DIRS:PATH=$netcdf_install/include")
-cmake_args+=("-DNetcdf_LIBRARY_DIRS:PATH=$netcdf_install/lib")
+
