@@ -161,6 +161,7 @@ function archie_config_cmake_itself () {
   bootstrap_cmd+="--parallel=$make_threads "
   bootstrap_cmd+="--prefix=$root_path/install/cmake "
   bootstrap_cmd+="-- -DBUILD_TESTING:BOOL=OFF "
+  bootstrap_cmd+="-DCMAKE_USE_OPENSSL=OFF "
   echo "running $bootstrap_cmd"
   if eval $bootstrap_cmd
   then
