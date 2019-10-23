@@ -1,6 +1,7 @@
 cmake_args+=("-DOmega_h_PREFIX:PATH=$omega_h_install")
 cmake_args+=("-DBUILD_TESTING:BOOL=ON")
 cmake_args+=("-DGTest_PREFIX:PATH=$gtest_install")
+cmake_args+=("-DSEACASAprepro_PREFIX:PATH=$seacas_install")
 if [[ ! -z "$cubit" ]]
 then
   cmake_args+=("-DCUBIT_PREFIX:PATH=$cubit")
