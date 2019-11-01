@@ -1,7 +1,8 @@
 cmake_args+=("-DLGR_PREFIX:PATH=$lgrtk_install")
 cmake_args+=("-DBUILD_TESTING:BOOL=ON")
-if [[ ! -z "$utri" ]]
+if [[ "$utri" == "on" ]]
 then
+  cmake_args+=("-DLGR_OUO_USE_UTri:BOOL=ON")
   cmake_args+=("-DUTri_PREFIX:PATH=$utri_install")
 fi
 if [[ "$backend" == "cuda" ]]
