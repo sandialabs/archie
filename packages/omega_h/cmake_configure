@@ -1,5 +1,7 @@
 cmake_args+=("-DBUILD_SHARED_LIBS:BOOL=ON")
 cmake_args+=("-DBUILD_TESTING:BOOL=ON")
+cmake_args+=("-DCMAKE_BUILD_TYPE:STRING=None")
+cmake_args+=("-DCMAKE_CXX_FLAGS:STRING=-O2 -g")
 cmake_args+=("-DOmega_h_USE_Trilinos:BOOL=OFF")
 cmake_args+=("-DOmega_h_USE_SEACASExodus:BOOL=ON")
 cmake_args+=("-DOmega_h_USE_ZLIB:BOOL=OFF")
@@ -11,21 +13,10 @@ fi
 if [[ "$backend" == "cuda" ]]
 then
   cmake_args+=("-DOmega_h_USE_CUDA:BOOL=ON")
-  cmake_args+=("-DCMAKE_CXX_COMPILER:FILEPATH=$omega_h_src/bin/nvcc_wrapper")
-  cuda_version=`nvcc --version | tail -n 1 | cut -d ',' -f 2 | cut -d ' ' -f 3`
-  if [[ "$cuda_version" == "9.0" ]]
-  then
-    cmake_args+=("-DOmega_h_CXX_WARNINGS:BOOL=OFF")
-    cmake_args+=("-DOmega_h_EXTRA_CXX_FLAGS:STRING=-w")
-  fi
 fi
 if [[ "$backend" == "openmp" ]]
 then
   cmake_args+=("-DOmega_h_USE_OpenMP:BOOL=ON")
-fi
-if [[ ! -z $arch ]]
-then
-  cmake_args+=("-DOmega_h_ARCH:STRING=$arch")
 fi
 if [[ ! -z $sanitize ]]
 then
