@@ -1,7 +1,7 @@
 cmake_args+=("-DBUILD_SHARED_LIBS:BOOL=ON")
 cmake_args+=("-DBUILD_TESTING:BOOL=ON")
 cmake_args+=("-DCMAKE_BUILD_TYPE:STRING=None")
-cmake_args+=("-DCMAKE_CXX_FLAGS:STRING=-O2 -g")
+cmake_args+=("-DCMAKE_CXX_FLAGS:STRING=\"-O2 -g\"")
 cmake_args+=("-DOmega_h_USE_Trilinos:BOOL=OFF")
 cmake_args+=("-DOmega_h_USE_SEACASExodus:BOOL=ON")
 cmake_args+=("-DOmega_h_USE_ZLIB:BOOL=OFF")
