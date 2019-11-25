@@ -7,3 +7,7 @@ then
   cmake_args+=("-DLGR_OUO_USE_UTri:BOOL=ON")
   cmake_args+=("-DUTri_PREFIX:PATH=$utri_install")
 fi
+if [[ "$backend" == "cuda" ]]
+then
+  cmake_args+=("-DCMAKE_CUDA_FLAGS:STRING=\"-O2 -g -w\"")
+fi

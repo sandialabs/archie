@@ -14,5 +14,5 @@ then
 fi
 if [[ "$backend" == "cuda" ]]
 then
-  cmake_args+=("-DCMAKE_CXX_COMPILER:FILEPATH=$omega_h_install/bin/nvcc_wrapper")
+  cmake_args+=("-DCMAKE_CUDA_FLAGS:STRING=\"-O2 -g -w\"")
 fi
