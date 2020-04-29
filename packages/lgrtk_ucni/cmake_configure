@@ -1,8 +1,0 @@
-cmake_args+=("-DLGR_PREFIX:PATH=$lgrtk_install")
-cmake_args+=("-DBUILD_TESTING:BOOL=ON")
-cmake_args+=("-DCMAKE_BUILD_TYPE:STRING=None")
-cmake_args+=("-DCMAKE_CXX_FLAGS:STRING=\"-O2 -g\"")
-if [[ "$backend" == "cuda" ]]
-then
-  cmake_args+=("-DCMAKE_CUDA_FLAGS:STRING=\"-O2 -g -w\"")
-fi

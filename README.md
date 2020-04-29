@@ -1,11 +1,11 @@
-# Archie Build Environment for [LGR/Alexa](https://gitlab.sandia.gov/alexa/lgr)
+# Archie Build Environment for [LGR/v3](https://github.com/SNLComputation/lgrtk)
 
 First time use:
 
 ```bash
-git clone git@gitlab.sandia.gov:alexa/archie.git
+git clone git@gitlab.sandia.gov:amota/archie.git
 cd archie
-echo "make_threads=4" >> archie_config
+echo "make_threads=8" >> archie_config
 ./archie update
 ```
 
@@ -17,5 +17,5 @@ Pulling all new changes into existing copy:
 
 Developing a package:
 ```bash
-./archie changed src/lgrtk_ouo
+./archie changed src/lgrtk
 ```

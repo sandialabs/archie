@@ -1,8 +1,0 @@
-depends_on+=("lgrtk")
-depends_on+=("omega_h")
-depends_on+=("gtest")
-if [[ ! -z "$utri" ]]
-then
-  depends_on+=("netcdf")
-  depends_on+=("utri")
-fi

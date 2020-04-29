@@ -1,3 +1,0 @@
-make_threads=20
-backend=cuda
-arch=sm_70

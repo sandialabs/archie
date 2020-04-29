@@ -1,17 +1,8 @@
-cmake_args+=("-DOmega_h_PREFIX:PATH=$omega_h_install")
 cmake_args+=("-DBUILD_TESTING:BOOL=ON")
 cmake_args+=("-DCMAKE_BUILD_TYPE:STRING=None")
 cmake_args+=("-DCMAKE_CXX_FLAGS:STRING=\"-O2 -g\"")
 cmake_args+=("-DGTest_PREFIX:PATH=$gtest_install")
 cmake_args+=("-DSEACASAprepro_PREFIX:PATH=$seacas_install")
-if [[ ! -z "$cubit" ]]
-then
-  cmake_args+=("-DCUBIT_PREFIX:PATH=$cubit")
-fi
-if [[ ! -z "$lgr_elements" ]]
-then
-  cmake_args+=("-DLGR_ELEMENTS:STRING=$lgr_elements")
-fi
 if [[ "$backend" == "cuda" ]]
 then
   cmake_args+=("-DCMAKE_CUDA_FLAGS:STRING=\"-O2 -g -w\"")
