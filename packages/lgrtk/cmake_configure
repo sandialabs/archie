@@ -1,7 +1,6 @@
 #!/bin/bash
 cmake_args+=("-DBUILD_TESTING:BOOL=ON")
-cmake_args+=("-DCMAKE_BUILD_TYPE:STRING=Debug")
-cmake_args+=("-DCMAKE_CXX_FLAGS:STRING=\"-O2 -g\"")
+cmake_args+=("-DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo")
 cmake_args+=("-DLGR_ENABLE_CUDA=OFF")
 cmake_args+=("-DLGR_ENABLE_EXODUS=ON")
 cmake_args+=("-DLGR_ENABLE_SEARCH=ON")
