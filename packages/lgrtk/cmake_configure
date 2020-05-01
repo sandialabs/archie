@@ -1,16 +1,13 @@
+#!/bin/bash
 cmake_args+=("-DBUILD_TESTING:BOOL=ON")
-cmake_args+=("-DCMAKE_BUILD_TYPE:STRING=None")
-cmake_args+=("-DBUILD_TESTING:BOOL=ON")
+cmake_args+=("-DCMAKE_BUILD_TYPE:STRING=Debug")
 cmake_args+=("-DCMAKE_CXX_FLAGS:STRING=\"-O2 -g\"")
 cmake_args+=("-DLGR_ENABLE_CUDA=OFF")
-#cmake_args+=("-DMPI_C_COMPILER=/usr/lib64/openmpi/bin/mpicc")
-#cmake_args+=("-DMPI_CXX_COMPILER=/usr/lib64/openmpi/bin/mpicxx")
 cmake_args+=("-DLGR_ENABLE_EXODUS=ON")
 cmake_args+=("-DLGR_ENABLE_SEARCH=ON")
 cmake_args+=("-DLGR_ENABLE_UNIT_TESTS=ON")
-cmake_args+=("-DGTest_PREFIX:PATH=$gtest_install")
-cmake_args+=("-DSEACASAprepro_PREFIX:PATH=$seacas_install")
 if [[ "$backend" == "cuda" ]]
 then
   cmake_args+=("-DCMAKE_CUDA_FLAGS:STRING=\"-O2 -g -w\"")
 fi
+export GTEST_ROOT=$gtest_install
