@@ -1,3 +1,4 @@
+#!/bin/bash
 cmake_args+=("-DCMAKE_BUILD_TYPE:STRING=RELEASE")
 cmake_args+=("-DBUILD_SHARED_LIBS:BOOL=ON")
 cmake_args+=("-DBUILD_UTILITIES:BOOL=OFF")

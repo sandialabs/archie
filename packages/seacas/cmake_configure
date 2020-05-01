@@ -1,3 +1,4 @@
+#!/bin/bash
 cmake_args+=("-DCMAKE_BUILD_TYPE:STRING=Release")
 cmake_args+=("-DSEACASProj_ENABLE_Fortran:BOOL=OFF")
 cmake_args+=("-DSEACASProj_ENABLE_Kokkos:BOOL=OFF")
@@ -13,3 +14,4 @@ cmake_args+=("-DSEACASExodus_ENABLE_HDF5:BOOL=ON")
 cmake_args+=("-DHDF5_LIBRARY_NAMES:STRING=hdf5-shared\;hdf5_hl-shared")
 cmake_args+=("-DHDF5_LIBRARY_DIRS:PATH=$hdf5_install/lib")
 cmake_args+=("-DHDF5_INCLUDE_DIRS:PATH=$hdf5_install/include")
+export MPI=OFF
