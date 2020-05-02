@@ -3,4 +3,4 @@ make_threads=32
 module purge
 module load sierra-devel
 export CC=$(which gcc)
-export CXX=$(whicg g++)
+export CXX=$(which g++)
