@@ -223,7 +223,7 @@ function archie_install () {
           exit -1
         fi
       else
-        echo "testing of $package disabled by packages/$packages/dont_test"
+        echo "testing of $package disabled by packages/$package/dont_test"
         echo "marking install as not stale"
         cd $root_path
         rm -f .archie/$package/install_is_stale
@@ -258,7 +258,7 @@ function archie_install () {
           exit -1
         fi
       else
-        echo "testing of $package disabled by packages/$packages/dont_test"
+        echo "testing of $package disabled by packages/$package/dont_test"
         echo "marking install as not stale"
         cd $root_path
         rm -f .archie/$package/install_is_stale
