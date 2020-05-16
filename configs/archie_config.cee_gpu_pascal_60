@@ -6,5 +6,5 @@ export CC=$(which gcc)
 export CXX=$(which g++)
 export NVCC_WRAPPER_DEFAULT_COMPILER=$(which g++)
 export backend=cuda
-export kokkos_arch=TESLA60
+export kokkos_arch=PASCAL60
 export cuda_arch=60
