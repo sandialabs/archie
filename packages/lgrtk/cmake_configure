@@ -12,4 +12,5 @@ then
 else
   cmake_args+=("-DLGR_ENABLE_CUDA=OFF")
 fi
-export GTEST_ROOT=$gtest_install
+cmake_args+=("-DGTEST_ROOT=$gtest_install")
+cmake_args+=("-DGTEST_INCLUDE_DIRS=$gtest_install/include")
