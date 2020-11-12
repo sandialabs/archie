@@ -3,7 +3,7 @@
 First time use:
 
 ```bash
-git clone git@gitlab.sandia.gov:amota/archie.git
+git clone git@github.com:SNLComputation/archie.git
 cd archie
 echo "make_threads=8" >> archie_config
 ./archie update
