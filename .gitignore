@@ -1,4 +1,5 @@
 .archie
+archie_config
 src
 build
 install
